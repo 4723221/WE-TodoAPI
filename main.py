@@ -10,6 +10,11 @@ class TodoItem(BaseModel):
     description: Optional[str] = None # TODOアイテムの補足説明（e.g. "牛乳は低温殺菌じゃないとだめ）
     completed: bool = False # TODOアイテムの完了状態（e.g. True: 完了, False: 未完了）
 
+class TodoItemCreateSchema(TodoItem):
+    title: Optional[str] = None
+    description: Optional[str] = None
+    completed: Optional[bool] = None
+
 # メモリ上のTODOリスト （データベースの代わりとして使用、サーバが停止するとデータが消える） 
 todos = [ 
     TodoItem(id=1, title="牛乳とパンを買う", description="牛乳は低温殺菌じゃないとだめ", completed=False), 
@@ -42,3 +47,36 @@ def get_todo(todo_id: int):
         if todo.id == todo_id: 
             return todo 
     raise HTTPException(status_code=404, detail="TODOが見つからない")
+
+@app.post("/todos", response_model=TodoItem) 
+def create_todo(req: TodoItemCreateSchema): # <--リクエストボディのデータを受け取る 
+    # 送られてきたIDは無視して、新しいIDを作成 
+    new_id = max([todo.id for todo in todos], default=0) + 1 
+    # IDをつけて新しいTODOアイテムを作成 
+    new_todo = TodoItem(id=new_id, title=req.title, description=req.description, completed=False) 
+    # todosリストに追加する処理 
+    todos.append(new_todo) 
+    
+    return new_todo # 追加したTODOアイテムを返す
+
+@app.delete("/todos/{todo_id}") 
+def delete_todo(todo_id: int): 
+    for i, todo in enumerate(todos): 
+        if todo.id == todo_id: 
+            deleted_todo = todos.pop(i) 
+            return {"message": f"TODO '{deleted_todo.description}' を削除しました"} 
+            
+    raise HTTPException(status_code=404, detail=f"ID {todo_id} のTODOが見つかりません")
+
+@app.put("/todos", response_model=TodoItem) 
+def update_todo(todo_id: int, req: TodoItemCreateSchema): 
+    for i, todo in enumerate(todos): 
+        if todo.id == todo_id: 
+            todos[i] = TodoItem( 
+                id=todo_id, 
+                title=req.title if req.title is not None else todo.title, 
+                description=req.description if req.description is not None else todo.description, 
+                completed=req.completed if req.completed is not None else todo.completed 
+            )
+            return todos[i]
+    raise HTTPException(status_code=404, detail=f"ID {todo_id} のTODOが見つかりません")
