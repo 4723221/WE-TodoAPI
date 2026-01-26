@@ -2,6 +2,11 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, validator 
 from typing import List, Optional 
 from datetime import datetime 
+
+from tortoise import fields
+from tortoise.contrib.fastapi import register_tortoise
+from tortoise.contrib.pydantic import pydantic_model_creator
+from model import TodoItem
 app = FastAPI(title="TODO API" , description="TODOリスト管理API" , version="1.0.0") 
 # TODOアイテムモデルの定義 
 class TodoItem(BaseModel):
